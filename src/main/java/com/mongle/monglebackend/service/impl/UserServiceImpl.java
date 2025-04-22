@@ -5,7 +5,8 @@ import com.mongle.monglebackend.domain.repository.UserRepository;
 import com.mongle.monglebackend.dto.request.user.UserCreateRequestDto;
 import com.mongle.monglebackend.dto.request.user.UserUpdateRequestDto;
 import com.mongle.monglebackend.service.UserService;
-import java.util.List;
+import com.mongle.monglebackend.exception.ResourceNotFoundException;
+import com.mongle.monglebackend.exception.InvalidInputException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void saveUser(UserCreateRequestDto dto) {
+        if (dto.getEmail() == null || dto.getEmail().isEmpty()) {
+            throw new InvalidInputException("이메일은 필수 입력 사항입니다.");
+        }
         User user = User.builder()
                 .email(dto.getEmail())
                 .nickname(dto.getNickname())
@@ -31,12 +35,12 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public User findUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<User> findAllUsers() {
+    public java.util.List<User> findAllUsers() {
         return userRepository.findAll();
     }
 
@@ -44,7 +48,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateUser(Long id, UserUpdateRequestDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         user.updateNickname(dto.getNickname());
     }
 
@@ -52,7 +56,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("해당 유저가 존재하지 않습니다.");
+            throw new ResourceNotFoundException("User", "id", id);
         }
         userRepository.deleteById(id);
     }

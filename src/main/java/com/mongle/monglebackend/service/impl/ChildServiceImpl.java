@@ -9,6 +9,8 @@ import com.mongle.monglebackend.dto.request.child.ChildCreateRequestDto;
 import com.mongle.monglebackend.dto.request.child.ChildUpdateRequestDto;
 import com.mongle.monglebackend.dto.response.child.ChildResponseDto;
 import com.mongle.monglebackend.service.ChildService;
+import com.mongle.monglebackend.exception.ResourceNotFoundException;
+import com.mongle.monglebackend.exception.InvalidInputException;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +30,11 @@ public class ChildServiceImpl implements ChildService {
     @Transactional
     public void createChild(Long userId, ChildCreateRequestDto dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 부모가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        if (dto.getName() == null || dto.getName().isEmpty()) {
+            throw new InvalidInputException("아이 이름은 필수 입력 사항입니다.");
+        }
 
         Child child = Child.builder()
                 .name(dto.getName())
@@ -44,7 +50,7 @@ public class ChildServiceImpl implements ChildService {
     @Transactional(readOnly = true)
     public ChildResponseDto findChild(Long childId) {
         Child child = childRepository.findById(childId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 아이가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("Child", "id", childId));
 
         return new ChildResponseDto(child.getId(), child.getName(), child.getBirthDate(), child.getGender());
     }
@@ -53,6 +59,10 @@ public class ChildServiceImpl implements ChildService {
     @Transactional(readOnly = true)
     public List<ChildResponseDto> findChildrenByUser(Long userId) {
         List<Child> children = childRepository.findByUserId(userId);
+
+        if (children.isEmpty()) {
+            throw new ResourceNotFoundException("Child", "user_id", userId);
+        }
 
         return children.stream()
                 .map(child -> new ChildResponseDto(child.getId(), child.getName(), child.getBirthDate(), child.getGender()))
@@ -63,7 +73,11 @@ public class ChildServiceImpl implements ChildService {
     @Transactional
     public void updateChild(Long childId, ChildUpdateRequestDto dto) {
         Child child = childRepository.findById(childId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 아이가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("Child", "id", childId));
+
+        if (dto.getName() == null || dto.getName().isEmpty()) {
+            throw new InvalidInputException("아이 이름은 필수 입력 사항입니다.");
+        }
 
         child.updateNickname(dto.getName());
         childRepository.save(child);
@@ -73,7 +87,7 @@ public class ChildServiceImpl implements ChildService {
     @Transactional
     public void deleteChild(Long childId) {
         if (!childRepository.existsById(childId)) {
-            throw new IllegalArgumentException("해당 아이가 존재하지 않습니다.");
+            throw new ResourceNotFoundException("Child", "id", childId);
         }
         childRepository.deleteById(childId);
     }
